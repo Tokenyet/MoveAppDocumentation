@@ -1,0 +1,1376 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Move App Api
+  description: MoveApp 開發用 Api，搭配 OpenApi 3.0 來進行文件撰寫。
+  termsOfService: http://swagger.io/terms/
+  contact:
+    name: BCC
+    email: info@bravocareercenter.com
+    url: https://www.bravocareercenter.com/
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: http://localhost/mvapp/api
+tags:
+  - name: "verification"
+    description: "簡訊驗證資料"
+    externalDocs:
+      description: "Find out more"
+      url: "http://localhost"
+  - name: "user"
+    description: "使用者資料"
+    externalDocs:
+      description: "Find out more"
+      url: "http://localhost"
+  - name: "order"
+    description: "訂單資料" #Index: 訂單編號, UserId, CompanyId 使用 RoomDetail MoveDetail WinnerDetail, Post, SubPost
+    externalDocs:
+      description: "Find out more"
+      url: "http://localhost"
+  - name: "post"
+    description: "一對一的訂單討論區 結標通知order"
+    externalDocs:
+      description: "Find out more"
+      url: "http://localhost"
+  - name: "coupon"
+    description: "查詢折價券資料" #Index: UserId
+    externalDocs:
+      description: "Find out more"
+      url: "http://localhost"
+  - name: "rate"
+    description: "使用者評價公司, 詳細查詢用 admin api" #Index: UserId, CompanyId
+    externalDocs:
+      description: "Find out more"
+      url: "http://localhost"
+  - name: "company"
+    description: "公司資料 新增營業登記證, 新增牌照"
+    externalDocs:
+      description: "Find out more"
+      url: "http://localhost"
+  - name: "admin"
+    description: "管理層 審核 company的資料 查看評價"
+    externalDocs:
+      description: "Find out more"
+      url: "http://localhost"
+paths:
+  # Verification 身分驗證
+  /verifications:
+    post:
+      summary: "驗證手機號碼"
+      tags:
+        - "verification"
+      description: "驗證手機號碼"
+      operationId: sendVerification
+      requestBody:
+        description: add user
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/postUserBody'
+            examples:
+              testA:
+                summary: 測試資料A
+                value:
+                  name: "王智龍"
+                  gender: "male"
+                  phone: "0987654321"
+                  email: "abc@gmail.com"
+                  firebaseToken: "as78dt7asd8tasd78"
+              
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                
+  # User 使用者
+  /users:
+    get:
+      summary: 取得使用者資料
+      tags:
+        - "user"
+      description: "取得使用者資料"
+      operationId: getUserById
+      parameters:
+        - name: tags
+          in: query
+          description: tags to filter by
+          required: false
+          style: form
+          schema:
+            type: array
+            items:
+              type: string
+        - name: limit
+          in: query
+          description: maximum number of results to return
+          required: false
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+              examples:
+                testA:
+                  summary: 測試資料A
+                  value:
+                    name: "王智龍"
+                    gender: "male"
+                    phone: "0987654321"
+                    email: "abc@gmail.com"
+                    firebaseToken: "as78dt7asd8tasd78"
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: 新增使用者
+      tags:
+        - "user"
+      description: "新增用戶"
+      operationId: addUser
+      requestBody:
+        description: add user
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/postUserBody'
+            examples:
+              testA:
+                summary: 測試資料A
+                value:
+                  name: "王智龍"
+                  gender: "male"
+                  phone: "0987654321"
+                  email: "abc@gmail.com"
+                  firebaseToken: "as78dt7asd8tasd78"
+              
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: 更新密碼/資料/FirebaseToken
+      tags:
+        - "user"
+      description: "更新Firebase token或資料或密碼"
+      operationId: updateUserById
+      requestBody:
+        description: 更新資料
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/updateUserBody'
+            examples:
+              testA:
+                summary: "測試資料A"
+                value:
+                  name: "王智龍"
+                  oldPassword: "123"
+                  newPassword: "456"
+                  email: "abc@gmail.com"
+                  phone: "0987654321"
+                  firebaseToken: "as78dt7asd8tasd78"
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 404
+                msg: "unexpected error"
+                
+                
+  # Order 訂單         
+  /orders:
+    get:
+      summary: "取得使用者自己所有的訂單/企業取得所有未指派訂單/不指定任何參數為指派中/管理員取得所有指派中的訂單"
+      tags:
+        - "order"
+      parameters: # 企業才有複雜的查詢訂單
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          required: false
+          description: The number of items to skip before starting to collect the result set.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          required: false
+          description: The number of items to return.
+        - in: query
+          name: hurry
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1
+            default: 1
+          required: false
+          description: The number of items to return.
+        - in: query
+          name: city
+          schema:
+            type: string
+          required: false
+          description: 都市
+        - in: query
+          name: street
+          schema:
+            type: string
+          required: false
+          description: 街區
+      responses:
+        '200':
+          description: 取得所有訂單
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: 新增訂單
+      tags:
+        - "order"
+      description: "新增用戶"
+      operationId: addOrder
+      requestBody:
+        description: add user
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/postUserBody'
+            examples:
+              testA:
+                summary: 測試資料A
+                value:
+                  name: "王智龍"
+                  gender: "male"
+                  phone: "0987654321"
+                  email: "abc@gmail.com"
+                  firebaseToken: "as78dt7asd8tasd78"
+              
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: 估價時選擇廠商
+      tags:
+        - "order"
+      description: "更新Firebase token或資料或密碼"
+      operationId: updateOrder
+      requestBody:
+        description: 更新資料
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/updateUserBody'
+            examples:
+              testA:
+                summary: "測試資料A"
+                value:
+                  name: "王智龍"
+                  oldPassword: "123"
+                  newPassword: "456"
+                  email: "abc@gmail.com"
+                  phone: "0987654321"
+                  firebaseToken: "as78dt7asd8tasd78"
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 404
+                msg: "unexpected error"
+  '/orders/payment':
+    post:
+      summary: 付款
+      tags:
+        - "order"
+      description: "需要包含是否使用優惠券(與開立發票?)"
+      operationId: payOrder
+      requestBody:
+        description: 更新資料
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/updateUserBody'
+            examples:
+              testA:
+                summary: "測試資料A"
+                value:
+                  name: "王智龍"
+                  oldPassword: "123"
+                  newPassword: "456"
+                  email: "abc@gmail.com"
+                  phone: "0987654321"
+                  firebaseToken: "as78dt7asd8tasd78"
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 404
+                msg: "unexpected error"
+  '/orders/beat/{companyId}':
+    get:
+      summary: 企業用來取得自己完工的訂單 企業/admin用
+      tags:
+        - "order"
+      parameters:
+        - in: path
+          name: companyId
+          schema:
+            type: string
+          required: true
+          description: 公司id
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          required: false
+          description: The number of items to skip before starting to collect the result set.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          required: false
+          description: The number of items to return.
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+          required: false
+          description: 起始範圍內的訂單.
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+          required: false
+          description: 結束範圍內的訂單.
+      responses:
+        '200':
+          description: 取得所有訂單
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                
+  # Post 貼文        
+  '/posts/{postId}':
+    get:
+      summary: 取得特定文章詳細資訊
+      tags:
+        - "post"
+      parameters:
+        - in: path
+          name: postId
+          schema:
+            type: string
+          required: true
+          description: post id
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: 企業新增貼文
+      tags:
+        - "post"
+      description: "新增用戶"
+      parameters:
+        - in: path
+          name: postId
+          schema:
+            type: string
+          required: true
+          description: post id
+      operationId: add post
+      requestBody:
+        description: add user
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/postUserBody'
+            examples:
+              testA:
+                summary: 測試資料A
+                value:
+                  name: "王智龍"
+                  gender: "male"
+                  phone: "0987654321"
+                  email: "abc@gmail.com"
+                  firebaseToken: "as78dt7asd8tasd78"
+              
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: 更新回文資料
+      tags:
+        - "post"
+      description: "更新Firebase token或資料或密碼"
+      parameters:
+        - in: path
+          name: postId
+          schema:
+            type: string
+          required: true
+          description: post id
+      operationId: update post
+      requestBody:
+        description: 更新資料
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/updateUserBody'
+            examples:
+              testA:
+                summary: "測試資料A"
+                value:
+                  name: "王智龍"
+                  oldPassword: "123"
+                  newPassword: "456"
+                  email: "abc@gmail.com"
+                  phone: "0987654321"
+                  firebaseToken: "as78dt7asd8tasd78"
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 404
+                msg: "unexpected error"
+    
+    
+  # 優惠券
+  /coupons:
+    get:
+      summary: 取得所有優惠券
+      tags:
+        - "coupon"
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: "新增折價券號碼"
+      tags:
+        - "coupon"
+      parameters:
+        - in: path
+          name: orderId
+          schema:
+            type: string
+          required: true
+          description: post id
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/coupons/invitation':
+    post:
+      summary: "新增邀請馬"
+      tags:
+        - "coupon"
+      parameters:
+        - in: path
+          name: orderId
+          schema:
+            type: string
+          required: true
+          description: post id
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                
+  
+  
+                
+  # 評價
+  /rates:
+    get:
+      summary: 取得所有公司總體星數評價 user/admin
+      tags:
+        - "rate"
+      parameters:
+        - in: path
+          name: companyId
+          schema:
+            type: string
+          required: true
+          description: post id
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                
+  '/rates/{companyId}':
+    get:
+      summary: 取得特定公司所有評價 company用 admin用
+      tags:
+        - "rate"
+      parameters:
+        - in: path
+          name: companyId
+          schema:
+            type: string
+          required: true
+          description: post id
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          required: false
+          description: The number of items to skip before starting to collect the result set.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          required: false
+          description: The number of items to return.
+        - in: query
+          name: order
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1
+            default: 0
+          required: false
+          description: 排序
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/rates/order/{orderId}':
+    post:
+      summary: "讓使用者為訂單評價 user用"
+      tags:
+        - "rate"
+      parameters:
+        - in: path
+          name: orderId
+          schema:
+            type: string
+          required: true
+          description: post id
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/rates/d/{rateId}':
+    delete:
+      summary: "刪除特定的評價 admin用"
+      tags:
+        - "rate"
+      parameters:
+        - in: path
+          name: rateId
+          schema:
+            type: string
+          required: true
+          description: post id
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          required: false
+          description: The number of items to skip before starting to collect the result set.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          required: false
+          description: The number of items to return.
+        - in: query
+          name: order
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1
+            default: 0
+          required: false
+          description: 排序
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'      
+                
+  # 企業
+  /companys:
+    get:
+      summary: "取得公司自己的資訊/取得所有公司基本資訊 company/admin"
+      tags:
+        - "company"
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: "創建公司帳號"
+      tags:
+        - "company"
+      parameters:
+        - in: path
+          name: orderId
+          schema:
+            type: string
+          required: true
+          description: post id
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: "更新公司牌照/營業登記證/師傅身分證 停權與否 company admin"
+      tags:
+        - "company"
+      parameters:
+        - in: path
+          name: orderId
+          schema:
+            type: string
+          required: true
+          description: post id
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/companys/store':
+    post:
+      summary: "儲值點數"
+      tags:
+        - "company"
+      parameters:
+        - in: path
+          name: orderId
+          schema:
+            type: string
+          required: true
+          description: post id
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+  
+  # 管理員            
+  /admins:
+    get:
+      summary: "取得管理員資訊"
+      tags:
+        - "admin"
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: "輸入簡訊號碼 登入管理員權限"
+      tags:
+        - "admin"
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: "修改管理員手機"
+      tags:
+        - "admin"
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    CompanyAuth:
+      type: http
+      scheme: basic
+    AdminAuth:
+      type: http
+      scheme: basic
+  schemas:
+    User:
+      required:
+        - name
+        - gender
+        - phone
+        - email
+      properties:
+        name:
+          type: string
+        gender:
+          type: string
+          enum: 
+            - female
+            - male
+        phone:
+          type: string # 不可重複
+        email:
+          type: string # 不可重複
+        halt:
+          type: string
+        salt:
+          type: string
+        optionals:
+          type: string
+          
+    Invitation: # 創建使用者順便創建這個
+      properties:
+        userId:
+          type: string
+        invitation: # 個人的邀請碼
+          type: string
+        downstream:
+          type: array # userIds
+          items:
+            type: string 
+        upstream:
+          type: string # userId
+          
+          
+    Company (Unfinished): # 完全不知道有啥幹用...
+      required:
+        - name
+        - gender
+        - phone
+        - email
+        - companyName
+        - companyId
+      properties:
+        companyName:
+          type: string
+        companyId:
+          type: string
+        name:
+          type: string
+        gender:
+          type: string
+          enum: 
+            - female
+            - male
+        phone:
+          type: string
+        email:
+          type: string
+        halt:
+          type: string
+        salt:
+          type: string
+        invitation:
+          type: string
+        optionals:
+          type: string
+          
+    
+          
+    Order: # 訂單
+      properties:
+        companyId: # 公司指派
+          type: string
+          format: objectId
+          default: null
+        companyOffset: # 驗收用
+          type: number
+          default: 0
+        couponIds: # 驗收選擇用
+          type: array
+          items:
+            $ref: '#/components/schemas/Coupon'
+        userId: # 創建時
+          type: string
+          format: objectId
+        postId: # 訂單處理時
+          type: string
+          format: objectId
+          default: null
+        rateId: # 最終跳出評價連結到訂單
+          type: string
+          format: objectId
+          default: null
+        orderStatus:
+          type: string
+          enum: 
+            - post # 剛創好的post問答階段
+            - close # 取消訂單
+            - process # 選擇了公司
+        isComplete: # 最終完成交易時
+          type: boolean
+          default: false
+        moveStatus: # 移動階段
+          type: string
+          enum:
+            - none
+            - start
+            - onStart
+            - onEnd # notify to customer to pay
+        moveOut: # 重要的使用者輸入資料
+          $ref: '#/components/schemas/MoveDetail'
+        moveIn: # 重要的使用者輸入資料
+          $ref: '#/components/schemas/MoveDetail'
+        moveDate: # 重要的使用者輸入資料
+          type: string
+          format: date
+        rooms: # 重要的使用者輸入資料
+          type: array
+          items:
+            $ref: '#/components/schemas/RoomDetail'
+        roomRemark: # 重要的使用者輸入資料
+          type: string
+        isNeedBox: # 重要的使用者輸入資料
+          type: boolean
+          default: false
+        winner: # 得標的公司 派遣資訊
+          $ref: '#/components/schemas/WinnerDetail'
+          
+    WinnerDetail:
+      properties:
+        responsive:
+          type: string
+        date:
+          type: string
+          format: date
+        carCount:
+          type: integer
+        peopleCount:
+          type: integer
+        phone:
+          type: string
+    
+    MoveDetail: # ChildSchemaOfOrder?
+      properties:
+        movingType:
+          type: string
+          enum:
+            - home
+            - start
+            - onStart
+            - onEnd
+        height:
+          type: integer
+        elevator:
+          type: boolean
+          default: false
+        courtyard:
+          type: boolean
+          default: false
+        distance:
+          type: number
+        terrain:
+          type: object
+          properties:
+            terrainType:
+              type: string
+            description:
+              type: string
+        location:
+          type: object
+          properties:
+            city:
+              type: string
+            area:
+              type: string
+            address:
+              type: string
+        contact:
+          type: object
+          properties:
+            name:
+              type: string
+            phone:
+              type: string
+            gender:
+              type: string
+              enum: 
+                - female
+                - male
+          
+    RoomDetail:
+      properties:
+        roomName:
+          type: string
+        imgUrls:
+          type: array
+          items:
+            type: string
+        elevator:
+          type: boolean
+          default: false
+        courtyard:
+          type: boolean
+          default: false
+        breakables:
+          default: null
+          type: array
+          items:
+            type: object
+            properties:
+              itemName:
+                type: string
+              count:
+                type: integer
+        throwables:
+          default: null
+          type: array
+          items:
+            type: object
+            properties:
+              itemName:
+                type: string
+              count:
+                type: integer
+    
+    Post:
+      properties:
+        subPost:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubPost'
+        evaluations:
+          type: array
+          items:
+            type: object
+            properties:
+              companyId:
+                type: string
+              cost:
+                type: integer
+              responseTime:
+                type: string
+                format: date
+              content:
+                type: string
+          
+          
+    SubPost:
+      properties:
+        companyId:
+          type: string
+        title:
+          type: string
+        date:
+          type: string
+          format: date
+        content:
+          type: string
+        comments:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              content:
+                type: integer
+              date:
+                type: string
+                format: date
+    
+    Coupon: # 系統根據新創帳號或完成交易或輸入邀請碼取得
+      properties:
+        userId:
+          type: string
+        discount:
+          type: integer
+        createdAt:
+          type: string
+          format: date
+        expireAt:
+          type: string
+          format: date
+          default: null
+        couponType:
+          type: string
+          enum:
+            - default # 新創
+            - special # 完成交易或公司創建
+          default: "default"
+          
+    Rate: #  order 創造
+      properties:
+        orderId:
+          type: string
+        companyId:
+          type: string
+        userId:
+          type: string
+        stars:
+          type: array
+          items:
+            type: integer
+        comment:
+          type: string
+    
+    
+    Notification: # Firebase 傳送通知用 創建任何用戶資料時新增 更新時修改
+      title: Notification 使用者與Firebase綁定用
+      properties:
+        userId:
+          type: string
+        firebaseToken:
+          type: string
+    
+    Verification: # 手機驗證, 限制 ip
+      title: Verification 手機驗證
+      properties:
+        ip:
+          type: string
+        code: # 6位數 # index
+          type: string
+        tries:
+          type: integer
+        lastTry:
+          type: string
+          format: date
+          
+    Error:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+          
+    getUser:
+      properties:
+        name:
+          type: string
+        gender:
+          type: string
+          enum: 
+            - female
+            - male
+        phone:
+          type: string # 不可重複
+        email:
+          type: string # 不可重複
+        invitation: # 不可重複 6位數
+          type: string
+        token:
+          type: string
+    
+    postUserBody:
+      properties:
+        name:
+          type: string
+        gender:
+          type: string
+          enum: 
+            - female
+            - male
+        phone:
+          type: string # 不可重複
+        email:
+          type: string # 不可重複
+        firebaseToken:
+          type: string
+          
+    updateUserBody:
+      properties:
+        name:
+          type: string
+        oldPassword:
+          type: string
+        newPassword:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        firebaseToken:
+          type: string
+      
