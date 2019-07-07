@@ -10,9 +10,10 @@ info:
     url: https://www.bravocareercenter.com/
   license:
     name: Apache 2.0
-    url: https://www.apache.org/licenses/LICENSE-2.0.html
+    url: https://www.apache.org/licenses/LICENSE-2.0.htm
 servers:
   - url: http://localhost/mvapp/api
+  - url: https://localhost/mvapp/api
 tags:
   - name: "verification"
     description: "簡訊驗證資料"
@@ -58,27 +59,38 @@ paths:
   # Verification 身分驗證
   /verifications:
     post:
-      summary: "驗證手機號碼"
+      summary: "送出手機號碼"
       tags:
         - "verification"
-      description: "驗證手機號碼"
-      operationId: sendVerification
+      description: "送出手機號碼，會觸發簡訊發送影響扣款，需要處理 ip 問題"
+      operationId: sendPhoneVerification
+      security: 
+        - bearerAuth: []
       requestBody:
         description: add user
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/postUserBody'
+              $ref: '#/components/schemas/registerVerification'
             examples:
               testA:
-                summary: 測試資料A
+                summary: 測試資料A(手機)
                 value:
-                  name: "王智龍"
-                  gender: "male"
                   phone: "0987654321"
-                  email: "abc@gmail.com"
-                  firebaseToken: "as78dt7asd8tasd78"
+              testB:
+                summary: 測試資料B(格式錯誤)
+                value:
+                  phone: "0987654321"
+            # examples:
+            #   testA:
+            #     summary: 測試資料A
+            #     value:
+            #       name: "王智龍"
+            #       gender: "male"
+            #       phone: "0987654321"
+            #       email: "abc@gmail.com"
+            #       firebaseToken: "as78dt7asd8tasd78"
               
       responses:
         '200':
@@ -86,13 +98,69 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/Success'
+              example: 
+                success: "0987654321"
+                message: ""
         default:
           description: unexpected error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+                
+  '/verifications/verify':
+    post:
+      summary: "驗證手機號碼"
+      tags:
+        - "verification"
+      description: "驗證手機號碼"
+      operationId: sendCodeVerification
+      security: 
+        - bearerAuth: []
+      requestBody:
+        description: add user
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/registerVerification'
+            examples:
+              testA:
+                summary: 測試資料A(成功號碼)
+                value:
+                  code: "999999"
+              testB:
+                summary: 測試資料B(錯誤號碼)
+                value:
+                  code: "000000"
+            # examples:
+            #   testA:
+            #     summary: 測試資料A
+            #     value:
+            #       name: "王智龍"
+            #       gender: "male"
+            #       phone: "0987654321"
+            #       email: "abc@gmail.com"
+            #       firebaseToken: "as78dt7asd8tasd78"
+              
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example: 
+                success: "0987654321"
+                message: ""
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                
                 
   # User 使用者
   /users:
@@ -102,41 +170,27 @@ paths:
         - "user"
       description: "取得使用者資料"
       operationId: getUserById
-      parameters:
-        - name: tags
-          in: query
-          description: tags to filter by
-          required: false
-          style: form
-          schema:
-            type: array
-            items:
-              type: string
-        - name: limit
-          in: query
-          description: maximum number of results to return
-          required: false
-          schema:
-            type: integer
-            format: int32
       responses:
         '200':
           description: pet response
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
-              examples:
-                testA:
-                  summary: 測試資料A
-                  value:
-                    name: "王智龍"
-                    gender: "male"
-                    phone: "0987654321"
-                    email: "abc@gmail.com"
-                    firebaseToken: "as78dt7asd8tasd78"
+                $ref: '#/components/schemas/getUser'
+              #   type: array
+              #   items:
+              #     $ref: '#/components/schemas/getUser'
+              # examples:
+              #   testA:
+              #     summary: 測試資料A
+              #     value:
+              #       name: "王智龍"
+              #       gender: "male"
+              #       phone: "0987654321"
+              #       email: "abc@gmail.com"
+              #       invitaion: "876547"
+              #       token: "%^&*()_+"
+                    #firebaseToken: "as78dt7asd8tasd78"
         default:
           description: unexpected error
           content:
@@ -155,7 +209,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/postUserBody'
+              $ref: '#/components/schemas/registerUserBody'
             examples:
               testA:
                 summary: 測試資料A
@@ -180,7 +234,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     put:
-      summary: 更新密碼/資料/FirebaseToken
+      summary: "更新密碼/資料/FirebaseToken"
       tags:
         - "user"
       description: "更新Firebase token或資料或密碼"
@@ -271,9 +325,34 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                oneOf:
+                  - $ref: '#/components/schemas/getOrdersForUser'
+                  - $ref: '#/components/schemas/getUnSignedOrdersForCompany'
+                  - $ref: '#/components/schemas/getSignedOrdersForCompany'
+                  - $ref: '#/components/schemas/getSignedOrdersForAdmin'
+              examples:
+                getOrdersForUser:
+                  summary: "取得使用者所有訂單資訊 user"
+                  value:
+                    - 
+                      $ref: '#/components/schemas/getOrdersForUser/example/0'
+                getUnSignedOrdersForCompany:
+                  summary: "取得所有未指派中訂單資訊 company (參數)"
+                  value:
+                    - 
+                      $ref: '#/components/schemas/getUnSignedOrdersForCompany/example/0'
+                      
+                getSignedOrdersForCompany:
+                  summary: "取得所有指派中訂單資訊 company (無參數)"
+                  value:
+                    - 
+                      $ref: '#/components/schemas/getSignedOrdersForCompany/example/0'
+                      
+                getSignedOrdersForAdmin:
+                  summary: "取得所有指派中訂單資訊 admin"
+                  value:
+                    - 
+                      $ref: '#/components/schemas/getSignedOrdersForAdmin/example/0'
         default:
           description: unexpected error
           content:
@@ -292,16 +371,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/postUserBody'
-            examples:
-              testA:
-                summary: 測試資料A
-                value:
-                  name: "王智龍"
-                  gender: "male"
-                  phone: "0987654321"
-                  email: "abc@gmail.com"
-                  firebaseToken: "as78dt7asd8tasd78"
+              $ref: '#/components/schemas/registerOrderForUserBody'
+            # examples:
+              # testA:
+              #   summary: 測試資料A
+              #   value:
+              #     name: "王智龍"
+              #     gender: "male"
+              #     phone: "0987654321"
+              #     email: "abc@gmail.com"
+              #     firebaseToken: "as78dt7asd8tasd78"
               
       responses:
         '200':
@@ -309,7 +388,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/getOrderDetailById'
         default:
           description: unexpected error
           content:
@@ -320,7 +399,7 @@ paths:
       summary: 估價時選擇廠商
       tags:
         - "order"
-      description: "更新Firebase token或資料或密碼"
+      description: "估價時選擇廠商"
       operationId: updateOrder
       requestBody:
         description: 更新資料
@@ -328,24 +407,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/updateUserBody'
-            examples:
-              testA:
-                summary: "測試資料A"
-                value:
-                  name: "王智龍"
-                  oldPassword: "123"
-                  newPassword: "456"
-                  email: "abc@gmail.com"
-                  phone: "0987654321"
-                  firebaseToken: "as78dt7asd8tasd78"
+              $ref: '#/components/schemas/updateOrderForUserBody'
       responses:
         '200':
           description: pet response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/getOrderDetailById'
         default:
           description: unexpected error
           content:
@@ -355,6 +424,38 @@ paths:
               example:
                 code: 404
                 msg: "unexpected error"
+                
+  '/orders/{orderId}':
+    get:
+      summary: "取得指定訂單 應有存取權限 Company沒指派人擁有存取權 Admin全權限"
+      tags:
+        - "order"
+      parameters: # 企業才有複雜的查詢訂單
+        - in: path
+          name: orderId
+          schema:
+            type: string
+          required: true
+          description: '訂單編號'
+      operationId: getOrderDetailById
+      responses:
+        '200':
+          description: 取得指定訂單
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getOrderDetailById'
+              examples:
+                getOrdersForUser:
+                  summary: "取得詳細訂單資訊"
+                  value:
+                    $ref: '#/components/schemas/getOrderDetailById/example'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   '/orders/payment':
     post:
       summary: 付款
@@ -368,24 +469,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/updateUserBody'
-            examples:
-              testA:
-                summary: "測試資料A"
-                value:
-                  name: "王智龍"
-                  oldPassword: "123"
-                  newPassword: "456"
-                  email: "abc@gmail.com"
-                  phone: "0987654321"
-                  firebaseToken: "as78dt7asd8tasd78"
+              $ref: '#/components/schemas/paymentOrderForUserBody'
       responses:
         '200':
           description: pet response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/paymentOrderResponse'
         default:
           description: unexpected error
           content:
@@ -444,9 +535,13 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/getBeatOrdersByCompanyId/properties'
+              examples:
+                getOrdersForUser:
+                  summary: "取得完工的訂單 company"
+                  value:
+                    - 
+                      $ref: '#/components/schemas/getBeatOrdersByCompanyId/example/0'
         default:
           description: unexpected error
           content:
@@ -501,7 +596,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/postUserBody'
+              $ref: '#/components/schemas/registerUserBody'
             examples:
               testA:
                 summary: 測試資料A
@@ -654,16 +749,36 @@ paths:
   # 評價
   /rates:
     get:
-      summary: 取得所有公司總體星數評價 user/admin
+      summary: 取得所有公司平均體星數評價 user/admin
       tags:
         - "rate"
       parameters:
-        - in: path
-          name: companyId
+        - in: query
+          name: offset
           schema:
-            type: string
-          required: true
-          description: post id
+            type: integer
+            minimum: 0
+            default: 0
+          required: false
+          description: The number of items to skip before starting to collect the result set.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          required: false
+          description: The number of items to return.
+        - in: query
+          name: order
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1
+            default: 0
+          required: false
+          description: 排序
       responses:
         '200':
           description: pet response
@@ -968,20 +1083,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+ 
+ 
+ 
                 
 components:
+
   securitySchemes:
-    BasicAuth:
+    #tokenAuth:        # arbitrary name for the security scheme
+    #  type: apiKey
+    #  description: token (Authentication token ...)
+    #  in: header       # can be "header", "query" or "cookie"
+    #  name: Authentication
+    bearerAuth:            # arbitrary name for the security scheme
       type: http
-      scheme: basic
-    CompanyAuth:
-      type: http
-      scheme: basic
-    AdminAuth:
-      type: http
-      scheme: basic
+      scheme: bearer
+      bearerFormat: JWT 
+  
+  
   schemas:
     User:
+      title: "User - 使用者Collection"
       required:
         - name
         - gender
@@ -1007,6 +1129,7 @@ components:
           type: string
           
     Invitation: # 創建使用者順便創建這個
+      title: "Invitation - 邀請碼Collection"
       properties:
         userId:
           type: string
@@ -1056,7 +1179,11 @@ components:
     
           
     Order: # 訂單
+      title: "Order - 訂單資料"
       properties:
+        orderId:
+          type: string
+          format: objectId
         companyId: # 公司指派
           type: string
           format: objectId
@@ -1115,8 +1242,9 @@ components:
           $ref: '#/components/schemas/WinnerDetail'
           
     WinnerDetail:
+      title: "WinnerDetail - 廠商提供 Order 資料 Part"
       properties:
-        responsive:
+        principle:
           type: string
         date:
           type: string
@@ -1129,14 +1257,8 @@ components:
           type: string
     
     MoveDetail: # ChildSchemaOfOrder?
+      title: "MoveDetail - 使用者提供 Order 資料 Part"
       properties:
-        movingType:
-          type: string
-          enum:
-            - home
-            - start
-            - onStart
-            - onEnd
         height:
           type: integer
         elevator:
@@ -1177,6 +1299,7 @@ components:
                 - male
           
     RoomDetail:
+      title: "RoomDetail - 使用者提供 Order 資料 Part"
       properties:
         roomName:
           type: string
@@ -1184,12 +1307,6 @@ components:
           type: array
           items:
             type: string
-        elevator:
-          type: boolean
-          default: false
-        courtyard:
-          type: boolean
-          default: false
         breakables:
           default: null
           type: array
@@ -1212,7 +1329,14 @@ components:
                 type: integer
     
     Post:
+      title: "Post - 與 Order 一對一的討論區"
       properties:
+        postId:
+          type: string
+          format: objectId
+        #userId: # 用來通知用戶 firebase 通知更新 拔掉這個得找 order 拿 userId
+          #type: string
+          #format: objectId
         subPost:
           type: array
           items:
@@ -1234,6 +1358,7 @@ components:
           
           
     SubPost:
+      title: "SubPost - 討論區的企業貼文 Part"
       properties:
         companyId:
           type: string
@@ -1253,11 +1378,12 @@ components:
                 type: string
               content:
                 type: integer
-              date:
+              createdAt:
                 type: string
                 format: date
     
     Coupon: # 系統根據新創帳號或完成交易或輸入邀請碼取得
+      title: "Coupon - 折價券"
       properties:
         userId:
           type: string
@@ -1278,6 +1404,7 @@ components:
           default: "default"
           
     Rate: #  order 創造
+      title: "Rate - 評價資料"
       properties:
         orderId:
           type: string
@@ -1294,7 +1421,7 @@ components:
     
     
     Notification: # Firebase 傳送通知用 創建任何用戶資料時新增 更新時修改
-      title: Notification 使用者與Firebase綁定用
+      title: "Notification - 使用者與Firebase綁定用"
       properties:
         userId:
           type: string
@@ -1302,7 +1429,7 @@ components:
           type: string
     
     Verification: # 手機驗證, 限制 ip
-      title: Verification 手機驗證
+      title: "Verification - 手機驗證"
       properties:
         ip:
           type: string
@@ -1314,7 +1441,16 @@ components:
           type: string
           format: date
           
+    Admin:
+      title: "Admin - 管理員"
+      properties:
+        ip:
+          type: string
+        phone:
+          type: string
+          
     Error:
+      title: "Error -失敗格式"
       required:
         - code
         - message
@@ -1325,6 +1461,18 @@ components:
         message:
           type: string
           
+    Success:
+      title: "Success -成功格式"
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: string
+        message:
+          type: string
+    
+    # 使用者
     getUser:
       properties:
         name:
@@ -1342,8 +1490,15 @@ components:
           type: string
         token:
           type: string
+      example:
+        name: "王智龍"
+        gender: "male"
+        phone: "0987654321"
+        email: "abc@gmail.com"
+        invitaion: "876547"
+        token: "%^&*()_+"
     
-    postUserBody:
+    registerUserBody:
       properties:
         name:
           type: string
@@ -1358,7 +1513,8 @@ components:
           type: string # 不可重複
         firebaseToken:
           type: string
-          
+      # response getUser
+    
     updateUserBody:
       properties:
         name:
@@ -1373,4 +1529,344 @@ components:
           type: string
         firebaseToken:
           type: string
+      # response getUser
+          
+    # 訂單
+    getOrderDetailById:
+      properties: # 使用者看自己所有的訂單 完不完成無所謂取消也要顯示
+        schema:
+          $ref: '#/components/schemas/Order'
+      example:
+        orderId: "%^_&D^&*S*(&T&D*A"
+        companyId: "%^_&D^&*S*(&T&D*A"
+        companyOffset: "-500"
+        couponIds: # 驗收選擇用
+          - "%^_&D^&*S*(&T&D*A"
+        userId: "%^_&D^&*S*(&T&D*A"
+        postId: "%^_&D^&*S*(&T&D*A"
+        rateId: "%^_&D^&*S*(&T&D*A"
+        orderStatus: "process"
+        isComplete: true
+        moveStatus: "onEnd"
+        moveOut: # 重要的使用者輸入資料
+          height: 20
+          elevator: true
+          courtyard: true
+          distance: 80
+          terrain:
+            terrainType: "slope"
+            description: "bad slope"
+          location:
+            city: "新北市"
+            area: "板橋區"
+            address: "鬼怪路八段899巷78號8樓"
+          contact:
+            name: "休比"
+            phone: "0987654321"
+            gender: "female"
+        moveIn: # 重要的使用者輸入資料
+          height: 20
+          elevator: true
+          courtyard: true
+          distance: 80
+          terrain:
+            terrainType: "slope"
+            description: "bad slope"
+          location:
+            city: "新北市"
+            area: "板橋區"
+            address: "鬼怪路八段899巷78號8樓"
+          contact:
+            name: "休比"
+            phone: "0987654321"
+            gender: "female"
+        moveDate: "2018-08-24 12:00:78"
+        rooms: # 重要的使用者輸入資料
+          - 
+            roomName: "神之房"
+            imgUrls:
+              - "http://imgur.com/abc"
+              - "http://imgur.com/abc"
+              - "http://imgur.com/abc"
+            breakables:
+              - 
+                itemName: "分離式冷氣"
+                count: 10
+              - 
+                itemName: "櫃子"
+                count: 10
+            throwables:
+              - 
+                itemName: "窗型冷氣"
+                count: 10
+              - 
+                itemName: "桌子"
+                count: 10
+        roomRemark: "A房間有問題,B房間沒問題,C房間要消失"
+        isNeedBox: true
+        winner: # 得標的公司 派遣資訊
+          principle: "林師父"
+          date: "2018-08-24 12:00:78"
+          carCount: 5
+          peopleCount: 4
+          phone: "0987654321"
+            
+    getOrdersForUser:
+      properties: # 使用者看自己所有的訂單 完不完成無所謂取消也要顯示
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+      example:
+        - $ref: '#/components/schemas/getOrderDetailById/example' # 暫時取得所有訂單詳細資訊 不知道未來變更
+            
+            
+    getSignedOrdersForCompany: 
+      properties: # 根據公司token 取得特定公司的指派中的 不包含已完成的
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+      example:
+        - $ref: '#/components/schemas/getOrderDetailById/example'
+        
+    getSignedOrdersForAdmin: 
+      properties: # Admin 取得指派中的 不包含已完成的
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+      example:
+        - $ref: '#/components/schemas/getOrderDetailById/example'
+        
+    getUnSignedOrdersForCompany: 
+      properties: # 搜索未指派的訂單用
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+      example:
+        - $ref: '#/components/schemas/getOrderDetailById/example'
+          
+    getBeatOrdersByCompanyId: 
+      properties: # 根據 Query 搜索範圍內完工的訂單, 預設取得近期前 10
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+      example:
+        - $ref: '#/components/schemas/getOrderDetailById/example'
+            
+    registerOrderForUserBody:
+      properties:
+        userId: # 創建時
+          type: string
+          format: objectId
+        moveOut: # 重要的使用者輸入資料
+          $ref: '#/components/schemas/MoveDetail'
+        moveIn: # 重要的使用者輸入資料
+          $ref: '#/components/schemas/MoveDetail'
+        moveDate: # 重要的使用者輸入資料
+          type: string
+          format: date
+        rooms: # 重要的使用者輸入資料
+          type: array
+          items:
+            $ref: '#/components/schemas/RoomDetail'
+        roomRemark: # 重要的使用者輸入資料
+          type: string
+        isNeedBox: # 重要的使用者輸入資料
+          type: boolean
+          default: false
+      example:
+        userId: "%^_&D^&*S*(&T&D*A"
+        moveOut: # 重要的使用者輸入資料
+          height: 20
+          elevator: true
+          courtyard: true
+          distance: 80
+          terrain:
+            terrainType: "slope"
+            description: "bad slope"
+          location:
+            city: "新北市"
+            area: "板橋區"
+            address: "鬼怪路八段899巷78號8樓"
+          contact:
+            name: "休比"
+            phone: "0987654321"
+            gender: "female"
+        moveIn: # 重要的使用者輸入資料
+          height: 20
+          elevator: true
+          courtyard: true
+          distance: 80
+          terrain:
+            terrainType: "slope"
+            description: "bad slope"
+          location:
+            city: "新北市"
+            area: "板橋區"
+            address: "鬼怪路八段899巷78號8樓"
+          contact:
+            name: "休比"
+            phone: "0987654321"
+            gender: "female"
+        moveDate: "2018-08-24 12:00:78"
+        rooms: # 重要的使用者輸入資料
+          - 
+            roomName: "神之房"
+            imgUrls:
+              - "http://imgur.com/abc"
+              - "http://imgur.com/abc"
+              - "http://imgur.com/abc"
+            breakables:
+              - 
+                itemName: "分離式冷氣"
+                count: 10
+              - 
+                itemName: "櫃子"
+                count: 10
+            throwables:
+              - 
+                itemName: "窗型冷氣"
+                count: 10
+              - 
+                itemName: "桌子"
+                count: 10
+        roomRemark: "A房間有問題,B房間沒問題,C房間要消失"
+        isNeedBox: true
+        # response getOrdersForUser
+          
+    updateOrderForUserBody:
+      properties:
+        orderId:
+          type: string
+          format: objectId
+        companyId: # 公司指派
+          type: string
+          format: objectId
+          default: null
+      example:
+        orderId: "%^_&D^&*S*(&T&D*A"
+        companyId: "%^_&D^&*S*(&T&D*A"
+      # response getOrdersForUser
       
+    paymentOrderForUserBody:
+      properties:
+        orderId:
+          type: string
+          format: objectId
+        paymentToken: # Google Pay, Apple Pay
+          type: string
+    
+    paymentOrderResponse:
+      properties:
+        orderId:
+          type: string
+          format: objectId
+        success: # Google Pay, Apple Pay
+          type: string
+          
+    getPostById:
+      properties:
+        schema:
+          $ref: '#/components/schemas/Post'
+          
+    newPostBodyById:
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+      # response getPostById  
+          
+    newCommentBodyByPostId: # 需要確認企業不能回其他區文章
+      properties:
+        name:
+          type: string # 不記錄 userId 改記名字而已
+        content:
+          type: integer
+      # response getPostById  
+      
+    getCoupons:
+      properties:
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/Coupon'
+            
+    registerCoupon:
+      properties:
+        couponCode:
+          type: string
+      # reponse getCoupons
+    
+    registerInvitation:
+      properties:
+        invitation:
+          type: string
+        # reponse getInvitations
+        # reponse getCoupons
+    
+    getRates: # 平均評價
+      properties:
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/Rate'
+    
+    
+    getRatesByCompanyId:
+      properties:
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/Rate'
+            
+            
+    registerRateBodyByOrderId:
+      properties:
+        userId:
+          type: string
+        stars:
+          type: array
+          items:
+            type: integer
+        comment:
+          type: string
+      # response getRatesByCompanyId (其實回傳什麼都可以)
+    
+    deleteRateByRateIdResponse:
+      properties:
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/Rate' 
+      # response getRatesByCompanyId (其實回傳什麼都可以)
+      
+    getAdmin:
+      properties:
+        schema:
+          $ref: '#/components/schemas/Admin'
+    
+    registerAdminLoginBody:
+      properties:
+        verificationCode:
+          type: string
+      # response getAdmin
+    
+    updateAdminPhoneBody:
+      properties:
+        #verificationCode:
+        #  type: string
+        phone:
+          type: string
+      # response getAdmin
+      
+    registerVerification:
+      properties:
+        #verificationCode:
+        #  type: string
+        phone:
+          type: string
