@@ -568,9 +568,15 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/getPostById/properties'
+              examples:
+                getOrdersForUser:
+                  summary: "取得貼文詳細資訊"
+                  value:
+                    $ref: '#/components/schemas/getPostById/example'
+                # type: array
+                # items:
+                #   $ref: '#/components/schemas/getUser'
         default:
           description: unexpected error
           content:
@@ -581,7 +587,7 @@ paths:
       summary: 企業新增貼文
       tags:
         - "post"
-      description: "新增用戶"
+      description: "新增貼文區"
       parameters:
         - in: path
           name: postId
@@ -596,24 +602,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/registerUserBody'
-            examples:
-              testA:
-                summary: 測試資料A
-                value:
-                  name: "王智龍"
-                  gender: "male"
-                  phone: "0987654321"
-                  email: "abc@gmail.com"
-                  firebaseToken: "as78dt7asd8tasd78"
-              
+              $ref: '#/components/schemas/newPostBodyById'
+            
       responses:
         '200':
           description: pet response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/getPostById/properties'
+              examples:
+                getOrdersForUser:
+                  summary: "取得貼文詳細資訊"
+                  value:
+                    $ref: '#/components/schemas/getPostById/example'
         default:
           description: unexpected error
           content:
@@ -639,24 +641,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/updateUserBody'
-            examples:
-              testA:
-                summary: "測試資料A"
-                value:
-                  name: "王智龍"
-                  oldPassword: "123"
-                  newPassword: "456"
-                  email: "abc@gmail.com"
-                  phone: "0987654321"
-                  firebaseToken: "as78dt7asd8tasd78"
+              $ref: '#/components/schemas/newCommentBodyByPostId'
       responses:
         '200':
           description: pet response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/getPostById/properties'
+              examples:
+                getOrdersForUser:
+                  summary: "取得貼文詳細資訊"
+                  value:
+                    $ref: '#/components/schemas/getPostById/example'
         default:
           description: unexpected error
           content:
@@ -680,9 +677,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/getCoupons'
         default:
           description: unexpected error
           content:
@@ -700,15 +695,20 @@ paths:
             type: string
           required: true
           description: post id
+      requestBody:
+        description: 更新資料
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/registerCoupon'
       responses:
         '200':
           description: pet response
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/getCoupons' # 回傳可使用的 coupon
         default:
           description: unexpected error
           content:
@@ -717,7 +717,7 @@ paths:
                 $ref: '#/components/schemas/Error'
   '/coupons/invitation':
     post:
-      summary: "新增邀請馬"
+      summary: "新增邀請碼"
       tags:
         - "coupon"
       parameters:
@@ -727,15 +727,20 @@ paths:
             type: string
           required: true
           description: post id
+      requestBody:
+        description: 新增邀請碼
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/registerInvitation'
       responses:
         '200':
           description: pet response
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/getCoupons'
         default:
           description: unexpected error
           content:
@@ -785,9 +790,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/getRates'
         default:
           description: unexpected error
           content:
@@ -835,19 +838,18 @@ paths:
           description: 排序
       responses:
         '200':
-          description: pet response
+          description: 查詢公司評價
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/getRatesByCompanyId'
         default:
           description: unexpected error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+                
   '/rates/order/{orderId}':
     post:
       summary: "讓使用者為訂單評價 user用"
@@ -860,15 +862,20 @@ paths:
             type: string
           required: true
           description: post id
+      requestBody:
+        description: 新增邀請碼
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/registerRateBodyByOrderId'
       responses:
         '200':
           description: pet response
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/Success' # 回傳啥都可以
         default:
           description: unexpected error
           content:
@@ -919,9 +926,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/Success' # 回傳啥都可以
         default:
           description: unexpected error
           content:
@@ -935,15 +940,41 @@ paths:
       summary: "取得公司自己的資訊/取得所有公司基本資訊 company/admin"
       tags:
         - "company"
+      parameters: 
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          required: false
+          description: The number of items to skip before starting to collect the result set.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          required: false
+          description: The number of items to return.
       responses:
         '200':
-          description: pet response
+          description: 取得所公司資訊, admin 才有 query
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                oneOf:
+                  - $ref: '#/components/schemas/getCompanyById'
+                  - $ref: '#/components/schemas/getCompanysByAdmin'
+              examples:
+                getCompany:
+                  summary: "取得公司自己的資訊 company"
+                  value:
+                    $ref: '#/components/schemas/getCompanyById/example'
+                getCompanys:
+                  summary: "取得所公司基本資訊 admin (參數)"
+                  $ref: '#/components/examples/getCompanysByAdmin'
         default:
           description: unexpected error
           content:
@@ -961,15 +992,20 @@ paths:
             type: string
           required: true
           description: post id
+      requestBody:
+        description: 創建公司帳號
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/registerCompanyBody'
       responses:
         '200':
           description: pet response
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/getCompanyById'
         default:
           description: unexpected error
           content:
@@ -986,16 +1022,30 @@ paths:
           schema:
             type: string
           required: true
-          description: post id
+          description: post i
+      requestBody:
+        description: "更新公司牌照/營業登記證/師傅身分證 停權與否 company admin"
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/updateCompanyAsCompanyBody'
+                - $ref: '#/components/schemas/updateCompanyAsAdminBody'
+            examples:
+              updateCompany:
+                summary: "更新公司自己的資訊 company"
+                $ref: '#/components/examples/updateCompanyAsCompanyBody'
+              updateCompanyAsAdmin:
+                summary: "更新/審核所公司資訊 admin"
+                $ref: '#/components/examples/updateCompanyAsAdminBody'
       responses:
         '200':
           description: pet response
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/getCompanyById'
         default:
           description: unexpected error
           content:
@@ -1014,18 +1064,29 @@ paths:
             type: string
           required: true
           description: post id
+      requestBody:
+        description: "儲值點數 company"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/registerCompanyCoinBody'
       responses:
         '200':
           description: pet response
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/getCompanyById'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   
   # 管理員            
-  /admins:
+  /admins: # 手機驗證交給 verification 寄送 code
     get:
       summary: "取得管理員資訊"
       tags:
@@ -1036,9 +1097,16 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                properties:
+                  #ip:
+                  #  type: string
+                  phone:
+                    type: string
+                  # token:
+                  #   type: string
+              example:
+                # ip: "189.216.214.52"
+                phone: "0987654321"
         default:
           description: unexpected error
           content:
@@ -1049,15 +1117,30 @@ paths:
       summary: "輸入簡訊號碼 登入管理員權限"
       tags:
         - "admin"
+      requestBody:
+        description: ""
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/registerAdminLoginBody'
       responses:
         '200':
           description: pet response
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                properties:
+                  ip:
+                    type: string
+                  phone:
+                    type: string
+                  token:
+                    type: string
+              example:
+                ip: "189.216.214.52"
+                phone: "0987654321"
+                token: "A)(&*A(SKO"
         default:
           description: unexpected error
           content:
@@ -1068,15 +1151,20 @@ paths:
       summary: "修改管理員手機"
       tags:
         - "admin"
+      requestBody:
+        description: ""
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/updateAdminPhoneBody'
       responses:
         '200':
           description: pet response
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/getUser'
+                $ref: '#/components/schemas/getAdmin'
         default:
           description: unexpected error
           content:
@@ -1141,9 +1229,12 @@ components:
             type: string 
         upstream:
           type: string # userId
+        companyStream:
+          type: string # companyId
           
           
-    Company (Unfinished): # 完全不知道有啥幹用...
+    Company: # 完全不知道有啥幹用...
+      title: "Company - 公司資料Collection"
       required:
         - name
         - gender
@@ -1175,6 +1266,29 @@ components:
           type: string
         optionals:
           type: string
+          
+        accountStatus:
+          type: string
+          enum: 
+            - unapproved
+            - approvedError
+            - stopRight
+            - normal
+        statusMsg:
+          type: string
+        peopleIdentificationUrls:
+          type: array
+          items:
+            type: string
+        carIdentificationUrls:
+          type: array
+          items:
+            type: string
+        companyIdentificationUrl:
+          type: string
+        coin:
+          type: integer
+            
           
     
           
@@ -1337,7 +1451,7 @@ components:
         #userId: # 用來通知用戶 firebase 通知更新 拔掉這個得找 order 拿 userId
           #type: string
           #format: objectId
-        subPost:
+        subPosts:
           type: array
           items:
             $ref: '#/components/schemas/SubPost'
@@ -1385,6 +1499,8 @@ components:
     Coupon: # 系統根據新創帳號或完成交易或輸入邀請碼取得
       title: "Coupon - 折價券"
       properties:
+        couponId:
+          type: string
         userId:
           type: string
         discount:
@@ -1406,6 +1522,8 @@ components:
     Rate: #  order 創造
       title: "Rate - 評價資料"
       properties:
+        rateId:
+          type: string
         orderId:
           type: string
         companyId:
@@ -1772,13 +1890,44 @@ components:
       properties:
         schema:
           $ref: '#/components/schemas/Post'
-          
-    newPostBodyById:
+      example:
+        postId: "%^_&D^&*S*(&T&D*A"
+        subPosts:
+          -
+            companyId: "%^_&D^&*S*(&T&D*A"
+            title: "543搬家公司"
+            date: "2017/06/30 18:00:32"
+            content: "評估沒問題會直接報價不用回復"
+            comments:
+              -
+                name: "神"
+                content: "123"
+                createdAt: "2017/06/30 18:00:32"
+              -
+                name: "商店"
+                content: "456"
+                createdAt: "2017/06/30 18:00:32"
+        evaluations:
+          -
+            companyId: "%^_&D^&*S*(&T&D*A"
+            cost: 8000
+            responseTime: "2017/06/30 18:00:32"
+            content: "Pay more!"
+          -
+            companyId: "%^_&D^&*S*(&T&D*A"
+            cost: 7000
+            responseTime: "2017/06/31 18:00:32"
+            content: "Pay more!"
+        
+    newPostBodyById: # 資料庫多記一筆 createdAt
       properties:
         title:
           type: string
         content:
           type: string
+      example:
+        title: "鬼之企業"
+        content: "你爸大內容"
       # response getPostById  
           
     newCommentBodyByPostId: # 需要確認企業不能回其他區文章
@@ -1787,6 +1936,9 @@ components:
           type: string # 不記錄 userId 改記名字而已
         content:
           type: integer
+      example:
+        name: "休比"
+        content: "機鎧種等待執行命令"
       # response getPostById  
       
     getCoupons:
@@ -1795,17 +1947,36 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Coupon'
+      example:
+        -
+          couponId: "%^_&D^&*S*(&T&D*A"
+          userId: "%^_&D^&*S*(&T&D*A"
+          discount: 200
+          createdAt: "2017/06/31 18:00:32"
+          expireAt: "2017/06/31 18:00:32"
+          couponType: "default"
+        -
+          couponId: "%^_&D^&*S*(&T&D*A"
+          userId: "%^_&D^&*S*(&T&D*A" # null in Coupon stage, If no user binding
+          discount: 600
+          createdAt: "2017/06/31 18:00:32"
+          expireAt: "2017/06/31 18:00:32"
+          couponType: "special"
             
-    registerCoupon:
+    registerCoupon: # 新增折價券
       properties:
-        couponCode:
+        couponId:
           type: string
+      example:
+        couponId: "%^_&D^&*S*(&T&D*A"
       # reponse getCoupons
     
-    registerInvitation:
+    registerInvitation: # 新增邀請碼
       properties:
         invitation:
           type: string
+      example:
+        invitation: "878787"
         # reponse getInvitations
         # reponse getCoupons
     
@@ -1814,8 +1985,22 @@ components:
         schema:
           type: array
           items:
-            $ref: '#/components/schemas/Rate'
-    
+            type: object
+            properties:
+              companyId: # 以 Compoany 為整合的平均星數
+                type: string
+              avgStar:
+                type: array
+                items:
+                  type: integer
+      example:
+        -
+          companyId: "%^_&D^&*S*(&T&D*A"
+          avgStar: [1, 2, 3, 4, 5]
+        -
+          companyId: "%^_&D^&*S*(&T&D*A"
+          avgStar: [1, 2, 3, 4, 5]
+          
     
     getRatesByCompanyId:
       properties:
@@ -1823,11 +2008,26 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Rate'
+      example:
+        -
+          rateId: "%^_&D^&*S*(&T&D*A"
+          orderId: "%^_&D^&*S*(&T&D*A"
+          companyId: "%^_&D^&*S*(&T&D*A"
+          userId: "%^_&D^&*S*(&T&D*A"
+          stars: [1, 2, 3, 4, 5]
+          comment: "爛公司"
+        -
+          rateId: "%^_&D^&*S*(&T&D*A"
+          orderId: "%^_&D^&*S*(&T&D*A"
+          companyId: "%^_&D^&*S*(&T&D*A"
+          userId: "%^_&D^&*S*(&T&D*A"
+          stars: [1, 2, 3, 4, 5]
+          comment: "好公司"
             
             
     registerRateBodyByOrderId:
       properties:
-        userId:
+        rateId:
           type: string
         stars:
           type: array
@@ -1835,6 +2035,10 @@ components:
             type: integer
         comment:
           type: string
+      example:
+        rateId: "%^_&D^&*S*(&T&D*A"
+        stars: [1, 2, 3, 4, 5]
+        comment: "爛公司"
       # response getRatesByCompanyId (其實回傳什麼都可以)
     
     deleteRateByRateIdResponse:
@@ -1845,15 +2049,287 @@ components:
             $ref: '#/components/schemas/Rate' 
       # response getRatesByCompanyId (其實回傳什麼都可以)
       
-    getAdmin:
+      
+    getCompanyById:
+      properties:
+        companyName:
+          type: string
+        companyId:
+          type: string
+        name:
+          type: string
+        gender:
+          type: string
+          enum: 
+            - female
+            - male
+        phone:
+          type: string
+        email:
+          type: string
+        token:
+          type: string
+        invitation:
+          type: string
+        accountStatus:
+          type: string
+          enum: 
+            - unapproved
+            - approvedError
+            - stopRight
+            - normal
+        statusMsg:
+          type: string
+        peopleIdentificationUrls:
+          type: array
+          items:
+            type: string
+        carIdentificationUrls:
+          type: array
+          items:
+            type: string
+        companyIdentificationUrl:
+          type: string
+        coin:
+          type: integer
+      example:
+        companyName: "機鍇種有限股份公司"
+        companyId: "87965437"
+        name: "休比"
+        gender: "female"
+        phone: "0987654321"
+        email: "shubi"
+        token: "%^&*U(A{SMNJA*)(H_"
+        invitation: "Z879657" # 隨機7碼 或 26 * 隨機六碼
+        accountStatus: "normal"
+        statusMsg: ""
+        peopleIdentificationUrls:
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+        carIdentificationUrls:
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+        companyIdentificationUrl:
+          - "http://imgur.com/abc"
+        coin: 81000
+        
+    getCompanysByAdmin:
       properties:
         schema:
-          $ref: '#/components/schemas/Admin'
+          type: array
+          items:
+            type: object
+            properties:
+              companyName:
+                type: string
+              companyId:
+                type: string
+              name:
+                type: string
+              gender:
+                type: string
+                enum: 
+                  - female
+                  - male
+              phone:
+                type: string
+              email:
+                type: string
+              token:
+                type: string
+              invitation:
+                type: string
+              accountStatus:
+                type: string
+                enum: 
+                  - unapproved
+                  - approvedError
+                  - stopRight
+                  - normal
+      example:
+          -
+            companyName: "機鍇種有限股份公司"
+            companyId: "87965437"
+            name: "休比"
+            gender: "female"
+            phone: "0987654321"
+            email: "shubi"
+            invitation: "Z879657"
+            accountStatus: "unapproved"
+          -
+            companyName: "機鍇種有限股份公司"
+            companyId: "87965437"
+            name: "休比"
+            gender: "female"
+            phone: "0987654321"
+            email: "shubi"
+            invitation: "Z879657"
+            accountStatus: "approvedError"
+          -
+            companyName: "機鍇種有限股份公司"
+            companyId: "87965437"
+            name: "休比"
+            gender: "female"
+            phone: "0987654321"
+            email: "shubi"
+            invitation: "Z879657"
+            accountStatus: "normal"
+          -
+            companyName: "機鍇種有限股份公司"
+            companyId: "87965437"
+            name: "休比"
+            gender: "female"
+            phone: "0987654321"
+            email: "shubi"
+            invitation: "Z879657"
+            accountStatus: "stopRight"
+    
+    registerCompanyBody:
+      properties:
+        companyName:
+          type: string
+        companyId:
+          type: string
+        name:
+          type: string
+        gender:
+          type: string
+          enum: 
+            - female
+            - male
+        phone:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+      example:
+        companyName: "機鍇種有限股份公司"
+        companyId: "87965437"
+        name: "休比"
+        gender: "female"
+        phone: "0987654321"
+        email: "shubi"
+        password: "C8763"
+          
+    updateCompanyAsCompanyBody:
+      properties:
+        name:
+          type: string
+        gender:
+          type: string
+          enum: 
+            - female
+            - male
+        email:
+          type: string
+        # 下面三個會需要重新審核
+        peopleIdentificationUrls:
+          type: array
+          items:
+            type: string
+        carIdentificationUrls:
+          type: array
+          items:
+            type: string
+        companyIdentificationUrl:
+          type: string
+      example:
+        name: "休比"
+        gender: "female"
+        email: "shubi"
+        peopleIdentificationUrls:
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+        carIdentificationUrls:
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+        companyIdentificationUrl:
+          - "http://imgur.com/abc"
+          
+    updateCompanyAsAdminBody:
+      properties:
+        companyName:
+          type: string
+        companyId:
+          type: string
+        name:
+          type: string
+        gender:
+          type: string
+          enum: 
+            - female
+            - male
+        phone:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        accountStatus:
+          type: string
+          enum: 
+            - unapproved
+            - approvedError
+            - stopRight
+            - normal
+        statusMsg:
+          type: string
+        peopleIdentificationUrls:
+          type: array
+          items:
+            type: string
+        carIdentificationUrls:
+          type: array
+          items:
+            type: string
+        companyIdentificationUrl:
+          type: string
+        coin:
+          type: integer
+      example:
+        companyName: "機鍇種有限股份公司"
+        companyId: "87965437"
+        name: "休比"
+        gender: "female"
+        phone: "0987654321"
+        email: "shubi"
+        token: "%^&*U(A{SMNJA*)(H_"
+        invitation: "Z879657" # 隨機7碼 或 26 * 隨機六碼
+        accountStatus: "normal"
+        statusMsg: ""
+        coin: 87000
+          
+    registerCompanyCoinBody:
+      properties:
+        paymentToken:
+          type: string
+      example:
+        paymentToken: "%&^*()T*()**"
+          
+    getAdmin:
+      properties:
+        # schema:
+        #   $ref: '#/components/schemas/Admin'
+        ip:
+          type: string
+        phone:
+          type: string
     
     registerAdminLoginBody:
       properties:
         verificationCode:
           type: string
+      example:
+        verificationCode: "aswd46"
       # response getAdmin
     
     updateAdminPhoneBody:
@@ -1862,6 +2338,8 @@ components:
         #  type: string
         phone:
           type: string
+      example:
+        phone: "0987654321"
       # response getAdmin
       
     registerVerification:
@@ -1870,3 +2348,80 @@ components:
         #  type: string
         phone:
           type: string
+      example:
+        phone: "0987654321"
+        
+        
+  examples: # examples 會有 $$ref 問題 需要在這邊使用...
+    getCompanysByAdmin: # use case for examples.
+      summary: "取得所公司基本資訊 admin (參數)"
+      value:
+      -
+        companyName: "機鍇種有限股份公司"
+        companyId: "87965437"
+        name: "休比"
+        gender: "female"
+        phone: "0987654321"
+        email: "shubi"
+        invitation: "Z879657"
+        accountStatus: "unapproved"
+      -
+        companyName: "機鍇種有限股份公司"
+        companyId: "87965437"
+        name: "休比"
+        gender: "female"
+        phone: "0987654321"
+        email: "shubi"
+        invitation: "Z879657"
+        accountStatus: "approvedError"
+      -
+        companyName: "機鍇種有限股份公司"
+        companyId: "87965437"
+        name: "休比"
+        gender: "female"
+        phone: "0987654321"
+        email: "shubi"
+        invitation: "Z879657"
+        accountStatus: "normal"
+      -
+        companyName: "機鍇種有限股份公司"
+        companyId: "87965437"
+        name: "休比"
+        gender: "female"
+        phone: "0987654321"
+        email: "shubi"
+        invitation: "Z879657"
+        accountStatus: "stopRight"
+    updateCompanyAsCompanyBody:
+      summary: "更新公司自己的資訊 company"
+      value:
+        name: "休比"
+        gender: "female"
+        email: "shubi"
+        peopleIdentificationUrls:
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+        carIdentificationUrls:
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+          - "http://imgur.com/abc"
+        companyIdentificationUrl:
+          - "http://imgur.com/abc"
+        companyName: "機鍇種有限股份公司"
+        companyId: "87965437"
+    updateCompanyAsAdminBody:
+      summary: "更新/審核所公司資訊 admin"
+      value:
+        name: "休比"
+        gender: "female"
+        phone: "0987654321"
+        email: "shubi"
+        token: "%^&*U(A{SMNJA*)(H_"
+        invitation: "Z879657" # 隨機7碼 或 26 * 隨機六碼
+        accountStatus: "normal"
+        statusMsg: ""
+        coin: 87000
+        
