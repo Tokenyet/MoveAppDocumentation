@@ -12,6 +12,8 @@ info:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.htm
 servers:
+  - url: http://localhost:8080/api/
+    description: Local Development server
   - url: http://localhost/mvapp/api
   - url: https://localhost/mvapp/api
 tags:
@@ -62,6 +64,13 @@ paths:
       summary: "送出手機號碼"
       tags:
         - "verification"
+      parameters: # 企業才有複雜的查詢訂單
+        - in: query
+          name: reset
+          schema:
+            type: boolean
+            default: null
+          description: 重設可以暫時通過檢測
       description: "送出手機號碼，會觸發簡訊發送影響扣款，需要處理 ip 問題"
       operationId: sendPhoneVerification
       security: 
@@ -129,11 +138,12 @@ paths:
               testA:
                 summary: 測試資料A(成功號碼)
                 value:
-                  code: "999999"
+                  phone: "+886987654321"
+                  code: "878787"
               testB:
                 summary: 測試資料B(錯誤號碼)
                 value:
-                  code: "000000"
+                  phone: "error"
             # examples:
             #   testA:
             #     summary: 測試資料A
@@ -217,6 +227,7 @@ paths:
                   name: "王智龍"
                   gender: "male"
                   phone: "0987654321"
+                  password: "c87631234"
                   email: "abc@gmail.com"
                   firebaseToken: "as78dt7asd8tasd78"
               
@@ -272,6 +283,78 @@ paths:
               example:
                 code: 404
                 msg: "unexpected error"
+  '/users/reset':
+    put:
+      summary: "重設密碼"
+      tags:
+        - "user"
+      description: "更新Firebase token或資料或密碼"
+      operationId: resetUserByPhoneCode
+      requestBody:
+        description: 重設密碼
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/resetUserPasswordBody'
+            examples:
+              testA:
+                summary: "測試資料A"
+                value:
+                  password: "456"
+                  #code: "123456" # 由verification處理成孤兒
+                  phone: "0987654321"
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 404
+                msg: "unexpected error"
+  '/users/login':
+    post:
+      summary: 使用者登入
+      tags:
+        - "user"
+      description: "新增用戶"
+      operationId: loginUser
+      requestBody:
+        description: login user
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/loginUserBody'
+            examples:
+              testA:
+                summary: 測試資料A
+                value:
+                  email: "abc@gmail.com"
+                  password: "123456aa"
+                  firebaseToken: "sa65drsa7867asr9asd678asd689asd"
+              
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getUser'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
                 
                 
   # Order 訂單         
@@ -288,7 +371,7 @@ paths:
             minimum: 0
             default: 0
           required: false
-          description: The number of items to skip before starting to collect the result set.
+          description: "offset 企業任何狀況都用的到"
         - in: query
           name: limit
           schema:
@@ -297,28 +380,48 @@ paths:
             maximum: 100
             default: 20
           required: false
-          description: The number of items to return.
+          description: "limit 最多幾筆"
         - in: query
-          name: hurry
+          name: related # 這個參數打掉下面所有參數 也不用限制數量 因為會隨時間消失
           schema:
-            type: integer
-            minimum: 0
-            maximum: 1
-            default: 1
+            type: boolean
+            default: false
           required: false
-          description: The number of items to return.
+          description: "是否追蹤中/討論過/已報價"
         - in: query
           name: city
           schema:
-            type: string
+            type: array
+            items:
+              type: string
+              enum: ["taipei_keelung", "taoyuan_hsinchu_miaoli", "taichung_changhua_nantou", "yunlin_chiayi_nantou",
+              "kaohsiung_pingtung", "yilan_hualien_taitung", "other"]
           required: false
-          description: 都市
+          description: "都市, 查詢未得標的訂單用 (追蹤或留言或報價都算)"
         - in: query
-          name: street
+          name: type
+          schema:
+            type: array
+            items:
+              type: string
+              enum: ["home", "company", "factory", "other"]
+          required: false
+          description: "搬遷遷出地類型"
+        - in: query
+          name: time
           schema:
             type: string
+            enum: ["in_two_days", "weerk", "month", "aftermonth", "all"]
           required: false
-          description: 街區
+          description: "時間選擇"
+        - in: query
+          name: timeSort
+          schema:
+            type: string
+            enum: ["asc", "des"]
+            default: "des"
+          required: false
+          description: "時間排序"
       responses:
         '200':
           description: 取得所有訂單
@@ -343,13 +446,13 @@ paths:
                       $ref: '#/components/schemas/getUnSignedOrdersForCompany/example/0'
                       
                 getSignedOrdersForCompany:
-                  summary: "取得所有指派中訂單資訊 company (無參數)"
+                  summary: "取得所有指派中訂單資訊 company (僅基本參數)"
                   value:
                     - 
                       $ref: '#/components/schemas/getSignedOrdersForCompany/example/0'
                       
                 getSignedOrdersForAdmin:
-                  summary: "取得所有指派中訂單資訊 admin"
+                  summary: "取得所有指派中訂單資訊 admin (僅基本參數)"
                   value:
                     - 
                       $ref: '#/components/schemas/getSignedOrdersForAdmin/example/0'
@@ -395,35 +498,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-    put:
-      summary: 估價時選擇廠商
-      tags:
-        - "order"
-      description: "估價時選擇廠商"
-      operationId: updateOrder
-      requestBody:
-        description: 更新資料
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/updateOrderForUserBody'
-      responses:
-        '200':
-          description: pet response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/getOrderDetailById'
-        default:
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                code: 404
-                msg: "unexpected error"
                 
   '/orders/{orderId}':
     get:
@@ -456,6 +530,44 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+    put:
+      summary: "更新指定訂單 User選擇廠商 Company可以更新Winner，其中的Worker可以修改推播,"
+      tags: # 要根據 role 判斷可以更新的功能
+        - "order"
+      parameters:
+        - in: path
+          name: orderId
+          schema:
+            type: string
+          required: true
+          description: '訂單編號'
+      operationId: updateOrderByOrderId
+      requestBody:
+        description: 更新資料
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/updateOrderForUserBody'
+                - $ref: '#/components/schemas/updateOrderByOrderIdBody'
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getOrderDetailById'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 404
+                msg: "unexpected error"             
+
   '/orders/payment':
     post:
       summary: 付款
@@ -476,7 +588,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/paymentOrderResponse'
+                $ref: '#/components/schemas/Success'
         default:
           description: unexpected error
           content:
@@ -1013,16 +1125,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     put:
-      summary: "更新公司牌照/營業登記證/師傅身分證 停權與否 company admin"
+      summary: "更新營業登記證/公司基本資料 停權與否 company admin"
       tags:
         - "company"
       parameters:
         - in: path
-          name: orderId
+          name: companyId # 因為 admin 要用 所以需要特定
           schema:
             type: string
           required: true
-          description: post i
+          description: "因為 admin 要用 所以需要特定"
       requestBody:
         description: "更新公司牌照/營業登記證/師傅身分證 停權與否 company admin"
         required: true
@@ -1052,25 +1164,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  '/companys/store':
+  '/companys/loginAsManager':
     post:
-      summary: "儲值點數"
+      summary: 公司登入
       tags:
         - "company"
-      parameters:
-        - in: path
-          name: orderId
-          schema:
-            type: string
-          required: true
-          description: post id
+      description: "公司用戶"
+      operationId: loginCompanyAsManager
       requestBody:
-        description: "儲值點數 company"
+        description: login company
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/registerCompanyCoinBody'
+              $ref: '#/components/schemas/loginCompanyAsManagerBody'
+            examples:
+              testA:
+                summary: 測試資料A
+                value:
+                  #email: "abc@gmail.com"
+                  taxNumber: "87654213" # 統編
+                  password: "123456aa"
+                  firebaseToken: "sa65drsa7867asr9asd678asd689asd"
+              
       responses:
         '200':
           description: pet response
@@ -1084,10 +1200,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  
-  # 管理員            
+  '/companys/loginAsWorker':
+    post:
+      summary: 員工登入
+      tags:
+        - "company"
+      description: "公司用戶"
+      operationId: loginCompanyAsWorker
+      requestBody:
+        description: login company
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/loginCompanyAsWorkerBody'
+            examples:
+              testA:
+                summary: 測試資料A
+                value:
+                  #email: "abc@gmail.com"
+                  taxNumber: "87654213" # 統編
+                  password: "123456aa"
+                  firebaseToken: "sa65drsa7867asr9asd678asd689asd"
+              
+      responses:
+        '200':
+          description: pet response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getCompanyById'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                
+  # 管理員 # 存款提款可以直接更新點數 檢視/刪除需求
   /admins: # 手機驗證交給 verification 寄送 code
-    get:
+    get: 
       summary: "取得管理員資訊"
       tags:
         - "admin"
@@ -1172,8 +1324,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
  
- 
- 
                 
 components:
 
@@ -1219,19 +1369,32 @@ components:
     Invitation: # 創建使用者順便創建這個
       title: "Invitation - 邀請碼Collection"
       properties:
-        userId:
+        user:
           type: string
+          format: ObjectId
         invitation: # 個人的邀請碼
           type: string
+          format: ObjectId
         downstream:
           type: array # userIds
           items:
             type: string 
+            format: ObjectId
         upstream:
           type: string # userId
+          format: ObjectId
         companyStream:
           type: string # companyId
+          format: ObjectId
           
+    PhoneOrphanage: # 手機驗證的時候創建
+      title: "PhoneOrphanage - 已驗證手機Collection"
+      properties:
+        phone:
+          type: string
+        expiredAt:
+          type: string
+          format: date
           
     Company: # 完全不知道有啥幹用...
       title: "Company - 公司資料Collection"
@@ -1241,11 +1404,11 @@ components:
         - phone
         - email
         - companyName
-        - companyId
+        - taxNumber
       properties:
         companyName:
           type: string
-        companyId:
+        taxNumber:
           type: string
         name:
           type: string
@@ -1264,9 +1427,17 @@ components:
           type: string
         invitation:
           type: string
-        optionals:
+          
+        companyPhone:
+          type: string
+        city:
+          type: string
+        area:
+          type: string
+        address:
           type: string
           
+        # admin control
         accountStatus:
           type: string
           enum: 
@@ -1276,22 +1447,59 @@ components:
             - normal
         statusMsg:
           type: string
-        peopleIdentificationUrls:
-          type: array
-          items:
-            type: string
-        carIdentificationUrls:
-          type: array
-          items:
-            type: string
-        companyIdentificationUrl:
+        # peopleIdentificationUrls:
+        #   type: array
+        #   items:
+        #     type: string
+        # carIdentificationUrls:
+        #   type: array
+        #   items:
+        #     type: string
+        companyIdentificationUrl: # 變成註冊後必須上傳
           type: string
         coin:
           type: integer
-            
-          
-    
-          
+        coinRequests: # 儲值 匯款日期、匯款金額、匯款銀行、帳戶末五碼或存款人
+          type: array
+          items:
+            type: object
+            properties:
+              #account:
+              #  type: string
+              date:
+                type: string
+                format: date
+              price:
+                type: number
+              owner:
+                type: string
+        withdrawRequest: # 綁定銀行
+          type: number
+        bank:
+          type: object
+          properties:
+            bank:
+              type: string
+            account:
+              type: string
+            name:
+              type: string
+            picture:
+              type: string
+        people:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              phone:
+                type: string
+              token:
+                type: string
+              pwd:
+                type: string
+        
     Order: # 訂單
       title: "Order - 訂單資料"
       properties:
@@ -1320,22 +1528,31 @@ components:
           type: string
           format: objectId
           default: null
+        traced: # untracable? 追蹤中 總體要從追蹤跟回答去產生最終追蹤結果
+          type: array
+          items: # companyId
+            type: string
+            format: objectId
         orderStatus:
           type: string
           enum: 
             - post # 剛創好的post問答階段
             - close # 取消訂單
             - process # 選擇了公司
-        isComplete: # 最終完成交易時
-          type: boolean
-          default: false
+            - complete # 付款完成 整筆交易結束
+        #isComplete: # 最終完成交易時
+          #type: boolean
+          #default: false
         moveStatus: # 移動階段
           type: string
           enum:
             - none
-            - start
-            - onStart
-            - onEnd # notify to customer to pay
+            - start # 已指派師傅
+            - nearlyStart # 即將抵達遷出
+            - arriveStart # 抵達遷出
+            - nearlyEnd # 即將抵達遷入
+            - arriveEnd # 抵達遷入
+            - complete # 完成搬遷通知使用者
         moveOut: # 重要的使用者輸入資料
           $ref: '#/components/schemas/MoveDetail'
         moveIn: # 重要的使用者輸入資料
@@ -1343,6 +1560,10 @@ components:
         moveDate: # 重要的使用者輸入資料
           type: string
           format: date
+        #actualDate: # 最終搬家業者決定的時間 在 Winner 裡面
+        #  type: string
+        #  format: date
+        #  default: null
         rooms: # 重要的使用者輸入資料
           type: array
           items:
@@ -1354,25 +1575,38 @@ components:
           default: false
         winner: # 得標的公司 派遣資訊
           $ref: '#/components/schemas/WinnerDetail'
+        paymentMethod:
+          type: string
+          enum: ["apple", "google", "money"]
           
     WinnerDetail:
       title: "WinnerDetail - 廠商提供 Order 資料 Part"
       properties:
-        principle:
+        price:
+          type: number
+        principle: # 師傅名稱
           type: string
-        date:
+        date: # 搬遷日期
           type: string
           format: date
         carCount:
           type: integer
         peopleCount:
           type: integer
-        phone:
+        phone: # 師傅電話
           type: string
     
     MoveDetail: # ChildSchemaOfOrder?
       title: "MoveDetail - 使用者提供 Order 資料 Part"
       properties:
+        moveType:
+          type: string
+          enum:
+            - home
+            - company
+            - factory
+            - other
+          default: home
         height:
           type: integer
         elevator:
@@ -1442,7 +1676,7 @@ components:
               count:
                 type: integer
     
-    Post:
+    Post: # 又待討論了阿...
       title: "Post - 與 Order 一對一的討論區"
       properties:
         postId:
@@ -1464,11 +1698,10 @@ components:
                 type: string
               cost:
                 type: integer
-              responseTime:
-                type: string
-                format: date
+              predictDays:
+                type: integer
               content:
-                type: string
+                type: string # 正規 3.5x1/1.5x0/.../內容
           
           
     SubPost:
@@ -1499,37 +1732,46 @@ components:
     Coupon: # 系統根據新創帳號或完成交易或輸入邀請碼取得
       title: "Coupon - 折價券"
       properties:
-        couponId:
+        user:
           type: string
-        userId:
-          type: string
+          format: ObjectId
         discount:
           type: integer
         createdAt:
           type: string
           format: date
-        expireAt:
+        expiredAt:
           type: string
           format: date
           default: null
-        couponType:
+        couponCode:
+          type: string
+          maxLength: 9
+        couponActivity:
           type: string
           enum:
-            - default # 新創
-            - special # 完成交易或公司創建
-          default: "default"
+            - newlyCreated # 新創
+            - invited # 受邀請
+            - companyInvited # 公司邀請
+            - inviter # 邀請者
+            - activity001 # 活動
+          default: "activity001"
           
     Rate: #  order 創造
       title: "Rate - 評價資料"
       properties:
-        rateId:
+        rate:
           type: string
-        orderId:
+          format: ObjectId
+        order:
           type: string
-        companyId:
+          format: ObjectId
+        company:
           type: string
-        userId:
+          format: ObjectId
+        user:
           type: string
+          format: ObjectId
         stars:
           type: array
           items:
@@ -1541,7 +1783,12 @@ components:
     Notification: # Firebase 傳送通知用 創建任何用戶資料時新增 更新時修改
       title: "Notification - 使用者與Firebase綁定用"
       properties:
-        userId:
+        user:
+          type: string
+          format: ObjectId
+        company:
+          type: string
+        admin:
           type: string
         firebaseToken:
           type: string
@@ -1553,6 +1800,7 @@ components:
           type: string
         code: # 6位數 # index
           type: string
+          maxLength: 6
         tries:
           type: integer
         lastTry:
@@ -1576,6 +1824,8 @@ components:
         code:
           type: integer
           format: int32
+        type:
+          type: string
         message:
           type: string
           
@@ -1585,7 +1835,10 @@ components:
         - success
         - message
       properties:
-        success:
+        code:
+          type: integer
+          format: int32
+        type:
           type: string
         message:
           type: string
@@ -1629,6 +1882,9 @@ components:
           type: string # 不可重複
         email:
           type: string # 不可重複
+        password:
+          type: string
+          minLength: 8
         firebaseToken:
           type: string
       # response getUser
@@ -1648,6 +1904,26 @@ components:
         firebaseToken:
           type: string
       # response getUser
+      
+    resetUserPasswordBody:
+      properties:
+        phone:
+          type: string
+        #code:
+        #  type: string #code: "123456" # 由verification處理成孤兒
+        password:
+          type: string
+      # response getUser
+      
+    loginUserBody:
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        firebaseToken:
+          type: string
           
     # 訂單
     getOrderDetailById:
@@ -1869,14 +2145,65 @@ components:
         orderId: "%^_&D^&*S*(&T&D*A"
         companyId: "%^_&D^&*S*(&T&D*A"
       # response getOrdersForUser
-      
+    
+    
+    updateOrderByOrderIdBody: # company and worker
+      properties:
+        companyOffset: # worker
+          type: number
+        moveStatus: # worker
+          type: string
+          enum: ["start", "nearlyStart", "arriveStart", "nearlyEnd", "arriveEnd", "complete"]
+        winner: # company
+          type: object
+          properties:
+            price:
+              type: number
+            date: 
+              type: string
+              format: date
+            principle: # 用這個綁定 worker
+              type: string
+            phone:
+              type: string
+            carCount:
+              type: number
+            peopleCount:
+              type: number
+      example:
+        companyOffset: -500
+        moveStatus: "nearlyStart"
+        winner:
+          price: 5000
+          date: "2019/08/08 12:20:30"
+          principle: "林師父"
+          phone: "0987654321"
+          carCount: 5
+          peopleCount: 6
+          
+          
+        
     paymentOrderForUserBody:
       properties:
         orderId:
           type: string
           format: objectId
+        couponIds:
+          type: array
+          items:
+            type: string
+        paymentMethod:
+          type: string
+          enum: ["apple", "google", "money"]
         paymentToken: # Google Pay, Apple Pay
           type: string
+      example:
+        orderId: "A65as4654asd64asd654asd"
+        couponIds:
+          - "A65as4654asd64asd654asd"
+          - "A65as4654asd64asd654asd"
+        paymentMethod: "apple"
+        paymentToken: "A65as4654asd64asd654asd"
     
     paymentOrderResponse:
       properties:
@@ -2052,9 +2379,11 @@ components:
       
     getCompanyById:
       properties:
+        # companyId:
+        #   type: string
         companyName:
           type: string
-        companyId:
+        taxNumber:
           type: string
         name:
           type: string
@@ -2069,124 +2398,121 @@ components:
           type: string
         token:
           type: string
+        companyPhone:
+          type: string
+        city:
+          type: string
+        area:
+          type: string
+        address:
+          type: string
         invitation:
           type: string
         accountStatus:
           type: string
-          enum: 
-            - unapproved
-            - approvedError
-            - stopRight
-            - normal
+          enum: [ "unapproved", "approvedError", "stopRight", "normal" ]
         statusMsg:
           type: string
-        peopleIdentificationUrls:
-          type: array
-          items:
-            type: string
-        carIdentificationUrls:
-          type: array
-          items:
-            type: string
+        # peopleIdentificationUrls:
+        #   type: array
+        #   items:
+        #     type: string
+        # carIdentificationUrls:
+        #   type: array
+        #   items:
+        #     type: string
         companyIdentificationUrl:
           type: string
         coin:
           type: integer
+        coinRequests:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+              price:
+                type: number
+              owner:
+                type: string
+        withdrawRequest:
+          type: number
+        bank:
+          type: object
+          properties:
+            bank: 
+              type: string
+            account: 
+              type: string
+            name: 
+              type: string
+            picture: 
+              type: string
+        
       example:
         companyName: "機鍇種有限股份公司"
-        companyId: "87965437"
+        taxNumber: "87965437"
         name: "休比"
         gender: "female"
         phone: "0987654321"
         email: "shubi"
         token: "%^&*U(A{SMNJA*)(H_"
+        companyPhone: "0225645321"
+        city: "新北市"
+        area: "中山區"
+        address: "鬼神路八段8號7樓"
         invitation: "Z879657" # 隨機7碼 或 26 * 隨機六碼
         accountStatus: "normal"
         statusMsg: ""
-        peopleIdentificationUrls:
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-        carIdentificationUrls:
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
+        # peopleIdentificationUrls:
+        #   - "http://imgur.com/abc"
+        #   - "http://imgur.com/abc"
+        #   - "http://imgur.com/abc"
+        #   - "http://imgur.com/abc"
+        # carIdentificationUrls:
+        #   - "http://imgur.com/abc"
+        #   - "http://imgur.com/abc"
+        #   - "http://imgur.com/abc"
+        #   - "http://imgur.com/abc"
         companyIdentificationUrl:
           - "http://imgur.com/abc"
         coin: 81000
+        coinRequests:
+          - date: "2018/02/30 12:30:40"
+            price: 500
+            owner: "神手存款人墨舞碼88888"
+          - date: "2018/02/30 12:30:40"
+            price: 5200
+            owner: "神手存款人墨舞碼88888"
+          - date: "2018/02/30 12:30:40"
+            price: 4800
+            owner: "神手存款人墨舞碼88888"
+        withdrawRequest: 800
+        bank:
+          bank: "花旗銀行"
+          account: "4321123443211234"
+          name: "神手的戶名"
+          picture: "http://imgur.com/87654"
+    
+    getWorkerById:
+      properties:
+        name:
+          type: string
+        orders: # winner 裡面的 principle 與確認 companyId 與確認完結狀態
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+            
+          
+    
         
     getCompanysByAdmin:
       properties:
         schema:
           type: array
           items:
-            type: object
-            properties:
-              companyName:
-                type: string
-              companyId:
-                type: string
-              name:
-                type: string
-              gender:
-                type: string
-                enum: 
-                  - female
-                  - male
-              phone:
-                type: string
-              email:
-                type: string
-              token:
-                type: string
-              invitation:
-                type: string
-              accountStatus:
-                type: string
-                enum: 
-                  - unapproved
-                  - approvedError
-                  - stopRight
-                  - normal
-      example:
-          -
-            companyName: "機鍇種有限股份公司"
-            companyId: "87965437"
-            name: "休比"
-            gender: "female"
-            phone: "0987654321"
-            email: "shubi"
-            invitation: "Z879657"
-            accountStatus: "unapproved"
-          -
-            companyName: "機鍇種有限股份公司"
-            companyId: "87965437"
-            name: "休比"
-            gender: "female"
-            phone: "0987654321"
-            email: "shubi"
-            invitation: "Z879657"
-            accountStatus: "approvedError"
-          -
-            companyName: "機鍇種有限股份公司"
-            companyId: "87965437"
-            name: "休比"
-            gender: "female"
-            phone: "0987654321"
-            email: "shubi"
-            invitation: "Z879657"
-            accountStatus: "normal"
-          -
-            companyName: "機鍇種有限股份公司"
-            companyId: "87965437"
-            name: "休比"
-            gender: "female"
-            phone: "0987654321"
-            email: "shubi"
-            invitation: "Z879657"
-            accountStatus: "stopRight"
+            $ref: "#/components/schemas/getCompanyById"
     
     registerCompanyBody:
       properties:
@@ -2228,38 +2554,120 @@ components:
         email:
           type: string
         # 下面三個會需要重新審核
-        peopleIdentificationUrls:
+        # peopleIdentificationUrls:
+        #   type: array
+        #   items:
+        #     type: string
+        # carIdentificationUrls:
+        #   type: array
+        #   items:
+        #     type: string
+        city:
+          type: string
+        area:
+          type: string
+        address:
+          type: string
+        coinRequest: #單數 需求 # 資料庫是複數 coinRequests 但這邊只能新增不給刪除
+          type: object
+          properties: 
+              date:
+                type: string
+                format: date
+              price:
+                type: number
+              owner:
+                type: string
+        withdrawRequest:
+          type: number
+        bank: # 一次傳全部 修改全部
+          type: object
+          properties:
+            bank:
+              type: string
+            account:
+              type: string
+            name:
+              type: string
+            picture:
+              type: string
+        people: # 一次傳全部 修改全部
           type: array
           items:
-            type: string
-        carIdentificationUrls:
-          type: array
-          items:
-            type: string
+            type: object
+            properties:
+              name:
+                type: string
+              phone:
+                type: string
+              firebaseToken: # 登入才能取得
+                type: string
+              pwd:
+                type: string
         companyIdentificationUrl:
           type: string
       example:
         name: "休比"
         gender: "female"
         email: "shubi"
-        peopleIdentificationUrls:
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-        carIdentificationUrls:
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-        companyIdentificationUrl:
-          - "http://imgur.com/abc"
+        city: "新北市"
+        area: "新店區"
+        address: "神鬼路8段7號6樓"
+        coinRequest: #單數 需求 # 資料庫是複數 coinRequests 
+            date: "2018/02/30 12:30:40"
+            price: 500
+            owner: "神手存款人墨舞碼88888"
+        withdrawRequest: 500
+        bank:
+          - 
+            bank: "富邦銀行"
+            account: "0987654321234567890"
+            name: "鬼神公司"
+            picture: "http://imgur.com/b/abcdefg"
+        people:
+          - 
+            name: "小林師傅"
+            phone: "0987654321"
+            pwd: "a87654321"
+            # token: "A^&A*&^A&TDT)A&" # 也許在別的地方做?
+        companyIdentificationUrl: "http://imgur.com/asklasfjlkfjas"
+        # peopleIdentificationUrls:
+        #   - "http://imgur.com/abc"
+        #   - "http://imgur.com/abc"
+        #   - "http://imgur.com/abc"
+        #   - "http://imgur.com/abc"
+        # carIdentificationUrls:
+        #   - "http://imgur.com/abc"
+        #   - "http://imgur.com/abc"
+        #   - "http://imgur.com/abc"
+        #   - "http://imgur.com/abc"
+          
+    loginCompanyAsManagerBody:
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        firebaseToken:
+          type: string
+    loginCompanyAsWorkerBody:
+      properties:
+        taxNumber:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        firebaseToken:
+          type: string
           
     updateCompanyAsAdminBody:
       properties:
+        companyId:
+          type: string
         companyName:
           type: string
-        companyId:
+        taxNumber:
           type: string
         name:
           type: string
@@ -2283,30 +2691,64 @@ components:
             - normal
         statusMsg:
           type: string
-        peopleIdentificationUrls:
-          type: array
-          items:
-            type: string
-        carIdentificationUrls:
-          type: array
-          items:
-            type: string
-        companyIdentificationUrl:
+        companyPhone:
+          type: string
+        city:
+          type: string
+        area:
+          type: string
+        address:
+          type: string
+        companyIdentificationUrl: # 變成註冊後必須上傳
           type: string
         coin:
           type: integer
+        coinRequests: # 儲值 匯款日期、匯款金額、匯款銀行、帳戶末五碼或存款人
+          type: array
+          items:
+            type: object
+            properties:
+              #account:
+              #  type: string
+              date:
+                type: string
+                format: date
+              price:
+                type: number
+              owner:
+                type: string
+        withdrawRequest: # 綁定銀行
+          type: number
       example:
+        companyId: "8787878784654654"
         companyName: "機鍇種有限股份公司"
-        companyId: "87965437"
+        taxNumber: "87965437"
         name: "休比"
         gender: "female"
         phone: "0987654321"
         email: "shubi"
         token: "%^&*U(A{SMNJA*)(H_"
+        companyPhone: "0225645321"
+        city: "新北市"
+        area: "中山區"
+        address: "鬼神路八段8號7樓"
         invitation: "Z879657" # 隨機7碼 或 26 * 隨機六碼
-        accountStatus: "normal"
+        accountStatus: "unapproved"
         statusMsg: ""
-        coin: 87000
+        companyIdentificationUrl:
+          - "http://imgur.com/abc"
+        coin: 81000
+        coinRequests:
+          - date: "2018/02/30 12:30:40"
+            price: 500
+            owner: "神手存款人墨舞碼88888"
+          - date: "2018/02/30 12:30:40"
+            price: 5200
+            owner: "神手存款人墨舞碼88888"
+          - date: "2018/02/30 12:30:40"
+            price: 4800
+            owner: "神手存款人墨舞碼88888"
+        withdrawRequest: 800
           
     registerCompanyCoinBody:
       properties:
@@ -2357,71 +2799,204 @@ components:
       summary: "取得所公司基本資訊 admin (參數)"
       value:
       -
+        companyId: "8787878784654654"
         companyName: "機鍇種有限股份公司"
-        companyId: "87965437"
+        taxNumber: "87965437"
         name: "休比"
         gender: "female"
         phone: "0987654321"
         email: "shubi"
-        invitation: "Z879657"
+        token: "%^&*U(A{SMNJA*)(H_"
+        companyPhone: "0225645321"
+        city: "新北市"
+        area: "中山區"
+        address: "鬼神路八段8號7樓"
+        invitation: "Z879657" # 隨機7碼 或 26 * 隨機六碼
         accountStatus: "unapproved"
+        statusMsg: ""
+        companyIdentificationUrl:
+          - "http://imgur.com/abc"
+        coin: 81000
+        coinRequests:
+          - date: "2018/02/30 12:30:40"
+            price: 500
+            owner: "神手存款人墨舞碼88888"
+          - date: "2018/02/30 12:30:40"
+            price: 5200
+            owner: "神手存款人墨舞碼88888"
+          - date: "2018/02/30 12:30:40"
+            price: 4800
+            owner: "神手存款人墨舞碼88888"
+        withdrawRequest: 800
+        bank:
+          bank: "花旗銀行"
+          account: "4321123443211234"
+          name: "神手的戶名"
+          picture: "http://imgur.com/87654"
       -
+        companyId: "8787878784654654"
         companyName: "機鍇種有限股份公司"
-        companyId: "87965437"
+        taxNumber: "87965437"
         name: "休比"
         gender: "female"
         phone: "0987654321"
         email: "shubi"
-        invitation: "Z879657"
+        token: "%^&*U(A{SMNJA*)(H_"
+        companyPhone: "0225645321"
+        city: "新北市"
+        area: "中山區"
+        address: "鬼神路八段8號7樓"
+        invitation: "Z879657" # 隨機7碼 或 26 * 隨機六碼
         accountStatus: "approvedError"
+        statusMsg: ""
+        companyIdentificationUrl:
+          - "http://imgur.com/abc"
+        coin: 81000
+        coinRequests:
+          - date: "2018/02/30 12:30:40"
+            price: 500
+            owner: "神手存款人墨舞碼88888"
+          - date: "2018/02/30 12:30:40"
+            price: 5200
+            owner: "神手存款人墨舞碼88888"
+          - date: "2018/02/30 12:30:40"
+            price: 4800
+            owner: "神手存款人墨舞碼88888"
+        withdrawRequest: 800
+        bank:
+          bank: "花旗銀行"
+          account: "4321123443211234"
+          name: "神手的戶名"
+          picture: "http://imgur.com/87654"
       -
+        companyId: "8787878784654654"
         companyName: "機鍇種有限股份公司"
-        companyId: "87965437"
+        taxNumber: "87965437"
         name: "休比"
         gender: "female"
         phone: "0987654321"
         email: "shubi"
-        invitation: "Z879657"
+        token: "%^&*U(A{SMNJA*)(H_"
+        companyPhone: "0225645321"
+        city: "新北市"
+        area: "中山區"
+        address: "鬼神路八段8號7樓"
+        invitation: "Z879657" # 隨機7碼 或 26 * 隨機六碼
         accountStatus: "normal"
+        statusMsg: ""
+        companyIdentificationUrl:
+          - "http://imgur.com/abc"
+        coin: 81000
+        coinRequests:
+          - date: "2018/02/30 12:30:40"
+            price: 500
+            owner: "神手存款人墨舞碼88888"
+          - date: "2018/02/30 12:30:40"
+            price: 5200
+            owner: "神手存款人墨舞碼88888"
+          - date: "2018/02/30 12:30:40"
+            price: 4800
+            owner: "神手存款人墨舞碼88888"
+        withdrawRequest: 800
+        bank:
+          bank: "花旗銀行"
+          account: "4321123443211234"
+          name: "神手的戶名"
+          picture: "http://imgur.com/87654"
       -
+        companyId: "8787878784654654"
         companyName: "機鍇種有限股份公司"
-        companyId: "87965437"
+        taxNumber: "87965437"
         name: "休比"
         gender: "female"
         phone: "0987654321"
         email: "shubi"
-        invitation: "Z879657"
+        token: "%^&*U(A{SMNJA*)(H_"
+        companyPhone: "0225645321"
+        city: "新北市"
+        area: "中山區"
+        address: "鬼神路八段8號7樓"
+        invitation: "Z879657" # 隨機7碼 或 26 * 隨機六碼
         accountStatus: "stopRight"
+        statusMsg: ""
+        companyIdentificationUrl:
+          - "http://imgur.com/abc"
+        coin: 81000
+        coinRequests:
+          - date: "2018/02/30 12:30:40"
+            price: 500
+            owner: "神手存款人墨舞碼88888"
+          - date: "2018/02/30 12:30:40"
+            price: 5200
+            owner: "神手存款人墨舞碼88888"
+          - date: "2018/02/30 12:30:40"
+            price: 4800
+            owner: "神手存款人墨舞碼88888"
+        withdrawRequest: 800
+        bank:
+          bank: "花旗銀行"
+          account: "4321123443211234"
+          name: "神手的戶名"
+          picture: "http://imgur.com/87654"
     updateCompanyAsCompanyBody:
       summary: "更新公司自己的資訊 company"
       value:
         name: "休比"
         gender: "female"
         email: "shubi"
-        peopleIdentificationUrls:
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-        carIdentificationUrls:
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-          - "http://imgur.com/abc"
-        companyIdentificationUrl:
-          - "http://imgur.com/abc"
-        companyName: "機鍇種有限股份公司"
-        companyId: "87965437"
+        city: "新北市"
+        area: "新店區"
+        address: "神鬼路8段7號6樓"
+        coinRequest: #單數 需求 # 資料庫是複數 coinRequests 
+            date: "2018/02/30 12:30:40"
+            price: 500
+            owner: "神手存款人墨舞碼88888"
+        withdrawRequest: 500
+        bank:
+          - 
+            bank: "富邦銀行"
+            account: "0987654321234567890"
+            name: "鬼神公司"
+            picture: "http://imgur.com/b/abcdefg"
+        people:
+          - 
+            name: "小林師傅"
+            phone: "0987654321"
+            pwd: "a87654321"
+            # token: "A^&A*&^A&TDT)A&" # 也許在別的地方做?
+        companyIdentificationUrl: "http://imgur.com/asklasfjlkfjas"
+        
+        
     updateCompanyAsAdminBody:
       summary: "更新/審核所公司資訊 admin"
       value:
+        companyId: "8787878784654654"
+        companyName: "機鍇種有限股份公司"
+        taxNumber: "87965437"
         name: "休比"
         gender: "female"
         phone: "0987654321"
         email: "shubi"
         token: "%^&*U(A{SMNJA*)(H_"
+        companyPhone: "0225645321"
+        city: "新北市"
+        area: "中山區"
+        address: "鬼神路八段8號7樓"
         invitation: "Z879657" # 隨機7碼 或 26 * 隨機六碼
-        accountStatus: "normal"
+        accountStatus: "unapproved"
         statusMsg: ""
-        coin: 87000
+        companyIdentificationUrl:
+          - "http://imgur.com/abc"
+        coin: 81000
+        coinRequests:
+          - date: "2018/02/30 12:30:40"
+            price: 500
+            owner: "神手存款人墨舞碼88888"
+          - date: "2018/02/30 12:30:40"
+            price: 5200
+            owner: "神手存款人墨舞碼88888"
+          - date: "2018/02/30 12:30:40"
+            price: 4800
+            owner: "神手存款人墨舞碼88888"
+        withdrawRequest: 800
         
